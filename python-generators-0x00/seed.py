@@ -253,37 +253,3 @@ def main():
         print(f"An error occurred: {e}")
     finally:
         db_manager.close_connection()
-
-
-# Alternative simple generator function (if you prefer a standalone function)
-def stream_user_data_generator(connection: mysql.connector.connection.MySQLConnection, 
-                             batch_size: int = 100) -> Generator[Dict[str, Any], None, None]:
-    """
-    Standalone generator function that streams rows from user_data table
-    
-    Args:
-        connection: MySQL database connection
-        batch_size: Number of rows to fetch at a time
-    
-    Yields:
-        Dictionary containing user data
-    """
-    cursor = None
-    try:
-        cursor = connection.cursor(dictionary=True)
-        cursor.execute("SELECT user_id, name, email, age FROM user_data")
-        
-        while True:
-            rows = cursor.fetchmany(batch_size)
-            if not rows:
-                break
-            
-            for row in rows:
-                yield dict(row)
-                
-    except Error as e:
-        print(f"Error in stream generator: {e}")
-        raise
-    finally:
-        if cursor:
-            cursor.close()
