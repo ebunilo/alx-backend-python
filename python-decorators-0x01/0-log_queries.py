@@ -1,5 +1,6 @@
 import sqlite3
 import functools
+from datetime import datetime
 
 #### decorator to log SQL queries
 
@@ -11,8 +12,12 @@ def log_queries(func):
         if query is None and len(args) > 0:
             query = args[0]  # Assume query is the first positional argument
         
-        # Log the SQL query
-        print(f"Executing SQL Query: {query}")
+        # Get current timestamp
+        current_time = datetime.now()
+        timestamp = current_time.strftime("%Y-%m-%d %H:%M:%S")
+        
+        # Log the SQL query with timestamp
+        print(f"[{timestamp}] Executing SQL Query: {query}")
         
         # Execute the original function
         result = func(*args, **kwargs)
