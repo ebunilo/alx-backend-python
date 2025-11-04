@@ -1,64 +1,66 @@
-#!/usr/bin/python3
-"""
-This module contains functions to stream and process user data in batches
-for improved performance when handling large datasets.
-"""
-import seed  # Import the seed module for database connection
 
-def stream_users_in_batches(batch_size=50):
+import mysql.connector
+from mysql.connector import Error
+from typing import Generator, List, Dict, Any
+from seed import DatabaseManager
+
+def stream_users_in_batches(batch_size: int) -> Generator[List[Dict[str, Any]], None, None]:
     """
-    A generator function that connects to the database and yields
-    batches of user rows.
-
+    Generator function that streams rows from user_data table in batches.
+    
     Args:
-        batch_size (int): The number of rows to fetch in each batch.
-
+        batch_size: Number of rows to fetch in each batch
+    
     Yields:
-        list: A list of dictionaries, where each dictionary represents a user.
+        List of dictionaries containing user data batches
     """
-    connection = None
+    db_manager = None
     cursor = None
+    
     try:
-        connection = seed.connect_to_prodev()
-        if not connection:
-            return
-
-        # Use a dictionary cursor to get rows as dictionaries
+        # Create DatabaseManager instance and connect to ALX_prodev
+        db_manager = DatabaseManager()
+        connection = db_manager.connect_to_prodev()
+        
+        # Create a server-side cursor for efficient memory usage
         cursor = connection.cursor(dictionary=True)
-        cursor.execute("SELECT * FROM user_data ORDER BY name;")
-
-        # This is the first loop (the main fetching loop)
+        
+        # Execute query
+        cursor.execute("SELECT user_id, name, email, age FROM user_data")
+        
+        # LOOP 1: Batch streaming loop
         while True:
-            # fetchmany() is an efficient way to get a specific number of rows
-            batch = cursor.fetchmany(batch_size)
-            
-            # If fetchmany returns an empty list, we've reached the end
-            if not batch:
+            rows = cursor.fetchmany(batch_size)  # Get batch of rows
+            if not rows:  # No more rows
                 break
             
-            # Yield the entire batch (a list of user dictionaries)
+            # Convert each row to dictionary and yield the batch
+            batch = [dict(row) for row in rows]
             yield batch
-
-    except Exception as e:
-        print(f"An error occurred while streaming batches: {e}")
+            
+    except Error as e:
+        print(f"Database error: {e}")
+        raise
     finally:
+        # Clean up resources
         if cursor:
             cursor.close()
-        if connection and connection.is_connected():
-            connection.close()
+        if db_manager:
+            db_manager.close_connection()
 
-
-def batch_processing(batch_size=50):
+def batch_processing(batch_size: int = 100) -> Generator[Dict[str, Any], None, None]:
     """
-    Processes batches of users to filter and print users older than 25.
-
+    Processes batches of users to filter those over age 25.
+    
     Args:
-        batch_size (int): The size of the batches to process.
+        batch_size: Number of rows to process in each batch
+    
+    Yields:
+        Individual user dictionaries for users over age 25
     """
-    # This is the second loop (iterating over the batches yielded by the generator)
-    for user_batch in stream_users_in_batches(batch_size):
-        # This is the third loop (iterating over users within a single batch)
-        for user in user_batch:
-            if user.get('age', 0) > 25:
-                print(user)
-
+    # LOOP 2: Iterate through batches from stream_users_in_batches
+    for batch in stream_users_in_batches(batch_size):
+        # LOOP 3: Process each user in the current batch
+        for user in batch:
+            if user['age'] > 25:
+                yield user
