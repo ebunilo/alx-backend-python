@@ -1,45 +1,44 @@
-#!/usr/bin/python3
-"""
-This module contains a generator function that streams user data
-row by row from a MySQL database.
-"""
-import seed  # Import the seed module to use its connection functions
+import mysql.connector
+from mysql.connector import Error
+from typing import Generator, Dict, Any
+from seed import DatabaseManager  # Import the DatabaseManager from seed.py
 
-def stream_users():
+def stream_users() -> Generator[Dict[str, Any], None, None]:
     """
-    A generator function that connects to the ALX_prodev database
-    and yields user rows one by one.
-
-    Each row is returned as a dictionary for easy access to column data.
+    Generator function that streams rows from user_data table one by one
+    using yield. Only contains one loop.
+    Uses DatabaseManager from seed.py to handle database connections.
+    
+    Yields:
+        Dictionary containing user data (user_id, name, email, age)
     """
-    connection = None
+    db_manager = None
     cursor = None
+    
     try:
-        # Establish a connection to the database
-        connection = seed.connect_to_prodev()
-        if not connection:
-            # If connection fails, the generator stops
-            return
-
-        # Using dictionary=True makes the cursor return rows as dictionaries
-        # (e.g., {'user_id': '...', 'name': '...'}), which matches the expected output.
+        # Create DatabaseManager instance and connect to ALX_prodev
+        db_manager = DatabaseManager()
+        connection = db_manager.connect_to_prodev()  # Use the class method
+        
+        # Create a server-side cursor for efficient memory usage
         cursor = connection.cursor(dictionary=True)
-
-        # Execute the query to fetch all users
-        cursor.execute("SELECT * FROM user_data ORDER BY name;")
-
-        # This is the single loop required by the instructions.
-        # The cursor itself is an iterator, so we can loop over it.
-        # It fetches rows from the database as needed, not all at once.
-        for row in cursor:
-            yield row
-
-    except Exception as e:
-        print(f"An error occurred while streaming users: {e}")
+        
+        # Execute query
+        cursor.execute("SELECT user_id, name, email, age FROM user_data")
+        
+        # Single loop that yields rows one by one
+        while True:
+            row = cursor.fetchone()  # Get one row at a time
+            if row is None:  # No more rows
+                break
+            yield dict(row)  # Yield the row as a dictionary
+            
+    except Error as e:
+        print(f"Database error: {e}")
+        raise
     finally:
-        # Ensure the cursor and connection are closed properly
+        # Clean up resources
         if cursor:
             cursor.close()
-        if connection and connection.is_connected():
-            connection.close()
-
+        if db_manager:
+            db_manager.close_connection()  # Use the class's cleanup method
