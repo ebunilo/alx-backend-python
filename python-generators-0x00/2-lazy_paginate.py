@@ -1,63 +1,80 @@
-#!/usr/bin/python3
-"""
-This module contains a generator to lazily load paginated data from a database,
-fetching one page at a time only when needed.
-"""
-import seed  # Import the seed module for database connection
+import mysql.connector
+from mysql.connector import Error
+from typing import Generator, List, Dict, Any
+from seed import DatabaseManager
 
-def paginate_users(page_size: int, offset: int) -> list:
+def paginate_users(page_size: int, offset: int) -> List[Dict[str, Any]]:
     """
-    Fetches a single page of users from the database.
-    This helper function must be included in this file for the checker.
-
+    Fetches a specific page of users from the database.
+    
     Args:
-        page_size (int): The number of users to fetch per page.
-        offset (int): The starting point from which to fetch users.
-
+        page_size: Number of users per page
+        offset: Starting position for the page
+    
     Returns:
-        list: A list of user dictionaries for the requested page.
+        List of user dictionaries for the requested page
     """
-    connection = None
+    db_manager = None
+    cursor = None
+    
     try:
-        connection = seed.connect_to_prodev()
-        if connection:
-            cursor = connection.cursor(dictionary=True)
-            # The checker is looking for this exact SQL string.
-            query = f"SELECT * FROM user_data LIMIT {page_size} OFFSET {offset}"
-            cursor.execute(query)
-            rows = cursor.fetchall()
-            cursor.close()
-            return rows
-        return []
-    except Exception as e:
-        print(f"An error occurred in paginate_users: {e}")
-        return []
+        # Create DatabaseManager instance and connect to ALX_prodev
+        db_manager = DatabaseManager()
+        connection = db_manager.connect_to_prodev()
+        
+        # Create a cursor
+        cursor = connection.cursor(dictionary=True)
+        
+        # Execute paginated query
+        query = """
+            SELECT user_id, name, email, age 
+            FROM user_data 
+            ORDER BY user_id 
+            LIMIT %s OFFSET %s
+        """
+        cursor.execute(query, (page_size, offset))
+        
+        # Fetch all results for this page
+        users = [dict(row) for row in cursor.fetchall()]
+        return users
+        
+    except Error as e:
+        print(f"Database error in paginate_users: {e}")
+        raise
     finally:
-        if connection and connection.is_connected():
-            connection.close()
+        # Clean up resources
+        if cursor:
+            cursor.close()
+        if db_manager:
+            db_manager.close_connection()
 
-
-def lazy_pagination(page_size: int = 100):
+def lazy_paginate(page_size: int) -> Generator[List[Dict[str, Any]], None, None]:
     """
-    A generator that lazily loads pages of users by calling paginate_users.
-    It only fetches the next page from the database when it is requested.
-
+    Generator that lazily loads paginated user data one page at a time.
+    Only fetches the next page when needed.
+    
     Args:
-        page_size (int): The number of users per page.
-
+        page_size: Number of users per page
+    
     Yields:
-        list: A page (list) of user dictionaries.
+        List of user dictionaries for each page
     """
     offset = 0
+    
+    # SINGLE LOOP: Continue until no more users are returned
     while True:
-        # Call the helper function using positional arguments to match the checker.
-        # This is the line that was fixed.
-        page = paginate_users(page_size, offset)
+        # Fetch the next page only when generator is iterated
+        print(f"Fetching page with offset {offset}, page size {page_size}")
+        current_page = paginate_users(page_size, offset)
         
-        if not page:
+        # If no users returned, we've reached the end
+        if not current_page:
+            print("✅ Reached end of data")
             break
         
-        yield page
+        # Yield the current page
+        yield current_page
         
+        # Move to next page
         offset += page_size
-
+        
