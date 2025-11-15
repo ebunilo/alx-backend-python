@@ -137,7 +137,9 @@ class TestIntegrationGithubOrgClient(unittest.TestCase):
         cls.get_patcher.stop()
 
     def test_public_repos(self) -> None:
-        """Test that public_repos returns all expected repo names (fixtures)."""
+        """Test that public_repos returns
+        all expected repo names (fixtures).
+        """
         client = GithubOrgClient(self.org_payload.get("login"))
         self.assertEqual(client.public_repos(), self.expected_repos)
         # Ensure external calls were made to org and repos URLs

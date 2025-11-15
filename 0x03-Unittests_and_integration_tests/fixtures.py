@@ -1,3 +1,13 @@
+"""
+fixtures.py
+
+This module contains fixture functions for unit testing in Python.
+Fixtures are used to set up a known state for tests to run against,
+ensuring that tests are isolated and repeatable.
+
+Author: Your Name
+Date: 15 November 2025
+"""
 #!/usr/bin/env python3
 
 TEST_PAYLOAD = [
