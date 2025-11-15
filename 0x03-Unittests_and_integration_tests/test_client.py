@@ -119,6 +119,7 @@ class TestIntegrationGithubOrgClient(unittest.TestCase):
         cls.repos_url = cls.org_payload.get("repos_url")
 
         def side_effect(url):
+            """Side effect function to return mock responses based on URL."""
             mock_resp = MagicMock()
             if url == cls.org_url:
                 mock_resp.json.return_value = cls.org_payload
