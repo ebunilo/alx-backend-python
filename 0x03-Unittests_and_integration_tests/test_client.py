@@ -136,12 +136,15 @@ class TestIntegrationGithubOrgClient(unittest.TestCase):
         cls.get_patcher.stop()
 
     def test_public_repos(self) -> None:
-        """Test that public_repos returns all expected repo names."""
+        """Test that public_repos returns all expected repo names (fixtures)."""
         client = GithubOrgClient(self.org_payload.get("login"))
         self.assertEqual(client.public_repos(), self.expected_repos)
+        # Ensure external calls were made to org and repos URLs
+        self.mock_get.assert_any_call(self.org_url)
+        self.mock_get.assert_any_call(self.repos_url)
 
     def test_public_repos_with_license(self) -> None:
-        """Test filtering repos by apache-2.0 license."""
+        """Test filtering repos by apache-2.0 license using fixtures."""
         client = GithubOrgClient(self.org_payload.get("login"))
         self.assertEqual(client.public_repos("apache-2.0"), self.apache2_repos)
 
