@@ -29,7 +29,8 @@ class TestAccessNestedMap(unittest.TestCase):
         expected: Any
     ) -> None:
         """
-        Test that access_nested_map returns the expected value for a valid path.
+        Test that access_nested_map returns the expected value
+        for a valid path.
         """
         self.assertEqual(access_nested_map(nested_map, path), expected)
 
@@ -104,11 +105,14 @@ class TestMemoize(unittest.TestCase):
             @memoize
             def a_property(self) -> int:
                 """
-                Return the result of a_method and rely on memoization to cache it.
+                Return the result of a_method and
+                rely on memoization to cache it.
                 """
                 return self.a_method()
 
-        with patch.object(TestClass, "a_method", return_value=42) as mock_method:
+        with patch.object(
+            TestClass, "a_method", return_value=42
+        ) as mock_method:
             obj = TestClass()
             first: int = obj.a_property
             second: int = obj.a_property
