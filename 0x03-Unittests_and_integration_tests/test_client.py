@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 """Unit tests for the GithubOrgClient class.
 
 This module validates that the client correctly retrieves organization
@@ -26,7 +28,9 @@ class TestGithubOrgClient(unittest.TestCase):
         - get_json is invoked exactly once with the formatted org URL.
         - Returned value matches mocked JSON.
         """
-        expected = {"repos_url": f"https://api.github.com/orgs/{org_name}/repos"}
+        expected = {
+            "repos_url": f"https://api.github.com/orgs/{org_name}/repos"
+        }
         mock_get_json.return_value = expected
 
         client = GithubOrgClient(org_name)
@@ -36,3 +40,7 @@ class TestGithubOrgClient(unittest.TestCase):
             f"https://api.github.com/orgs/{org_name}"
         )
         self.assertEqual(result, expected)
+
+
+if __name__ == "__main__":
+    unittest.main()
