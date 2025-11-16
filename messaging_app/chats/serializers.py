@@ -33,14 +33,14 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class MessageSerializer(serializers.ModelSerializer):
-    sender = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
+    sender = serializers.PrimaryKeyRelatedField(read_only=True)
     sender_detail = UserSerializer(source='sender', read_only=True)
     conversation = serializers.PrimaryKeyRelatedField(queryset=Conversation.objects.all())
 
     class Meta:
         model = Message
         fields = ['id', 'sender', 'sender_detail', 'conversation', 'message_body', 'sent_at']
-        read_only_fields = ['id', 'sent_at']
+        read_only_fields = ['id', 'sent_at', 'sender']
 
 
 class ConversationSerializer(serializers.ModelSerializer):
@@ -67,10 +67,8 @@ class ConversationSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         participants = attrs.get('participants', [])
-        if self.instance:
-            # on update, if participants omitted keep existing
-            if not participants:
-                participants = list(self.instance.participants.all())
+        if self.instance and not participants:
+            participants = list(self.instance.participants.all())
         if len(participants) < 2:
             raise serializers.ValidationError({'participants': 'At least two participants required.'})
         msgs = attrs.get('messages', [])
@@ -86,7 +84,7 @@ class ConversationSerializer(serializers.ModelSerializer):
         if participants:
             convo.participants.set(participants)
         for msg in messages_data:
-            Message.objects.create(conversation=convo, **msg)
+            Message.objects.create(conversation=convo, sender=self.context['request'].user, **msg)
         return convo
 
     def update(self, instance, validated_data):
@@ -100,5 +98,5 @@ class ConversationSerializer(serializers.ModelSerializer):
         if messages_data is not None:
             instance.messages.all().delete()
             for msg in messages_data:
-                Message.objects.create(conversation=instance, **msg)
+                Message.objects.create(conversation=instance, sender=self.context['request'].user, **msg)
         return instance
