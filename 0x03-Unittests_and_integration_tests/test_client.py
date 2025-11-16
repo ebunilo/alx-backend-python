@@ -11,7 +11,7 @@ from unittest.mock import patch, MagicMock
 from parameterized import parameterized, parameterized_class
 
 from client import GithubOrgClient
-from fixtures import org_payload, repos_payload, expected_repos, apache2_repos
+# from fixtures import org_payload, repos_payload, expected_repos, apache2_repos
 
 
 class TestGithubOrgClient(unittest.TestCase):
