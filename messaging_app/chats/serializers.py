@@ -46,12 +46,38 @@ class MessageSerializer(serializers.ModelSerializer):
 class ConversationSerializer(serializers.ModelSerializer):
     participants = serializers.PrimaryKeyRelatedField(many=True, queryset=User.objects.all())
     participants_detail = UserSerializer(source='participants', many=True, read_only=True)
-    messages = MessageSerializer(many=True, required=False)  # now writable
+    messages = MessageSerializer(many=True, required=False)
+    message_count = serializers.SerializerMethodField()
+    last_message = serializers.SerializerMethodField()
 
     class Meta:
         model = Conversation
-        fields = ['id', 'participants', 'participants_detail', 'created_at', 'messages']
+        fields = [
+            'id', 'participants', 'participants_detail',
+            'created_at', 'messages', 'message_count', 'last_message'
+        ]
         read_only_fields = ['id', 'created_at']
+
+    def get_message_count(self, obj):
+        return obj.messages.count()
+
+    def get_last_message(self, obj):
+        last = obj.messages.order_by('-sent_at').first()
+        return MessageSerializer(last).data if last else None
+
+    def validate(self, attrs):
+        participants = attrs.get('participants', [])
+        if self.instance:
+            # on update, if participants omitted keep existing
+            if not participants:
+                participants = list(self.instance.participants.all())
+        if len(participants) < 2:
+            raise serializers.ValidationError({'participants': 'At least two participants required.'})
+        msgs = attrs.get('messages', [])
+        for m in msgs:
+            if not m.get('message_body'):
+                raise serializers.ValidationError({'messages': 'Message body cannot be blank.'})
+        return attrs
 
     def create(self, validated_data):
         messages_data = validated_data.pop('messages', [])
@@ -72,7 +98,6 @@ class ConversationSerializer(serializers.ModelSerializer):
         if participants is not None:
             instance.participants.set(participants)
         if messages_data is not None:
-            # simple replace strategy; adjust if append behavior desired
             instance.messages.all().delete()
             for msg in messages_data:
                 Message.objects.create(conversation=instance, **msg)
