@@ -141,5 +141,5 @@ Rebuild environment caches on user model alterations.
 
 ## References
 
-- DRF docs: https://www.django-rest-framework.org/
-- Django docs: https://docs.djangoproject.com/
+- DRF docs: [https://www.django-rest-framework.org/](https://www.django-rest-framework.org/)
+- Django docs: [https://docs.djangoproject.com/](https://docs.djangoproject.com/)
