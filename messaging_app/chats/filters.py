@@ -14,8 +14,5 @@ class MessageFilter(django_filters.FilterSet):
         fields = [
             'conversation',
             'sender',
-            'recipient',
-            'created_after',
-            'created_before',
-            'user',
+            'created_at',
         ]
