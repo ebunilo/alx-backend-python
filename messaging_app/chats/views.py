@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
+from .filters import MessageFilter
 from rest_framework.exceptions import PermissionDenied
 
 from .models import Conversation, Message
@@ -51,11 +52,8 @@ class MessageViewSet(viewsets.ModelViewSet):
     queryset = Message.objects.all()
     serializer_class = MessageSerializer
     permission_classes = [IsParticipantOfConversation]
-    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['conversation', 'sender']  # ?conversation=<id>&sender=<user_id>
-    search_fields = ['message_body']
-    ordering_fields = ['sent_at']
-    ordering = ['-sent_at']
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = MessageFilter
 
     def get_queryset(self):
         # Restrict messages to those in conversations the user participates in
