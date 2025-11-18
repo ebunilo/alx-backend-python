@@ -55,6 +55,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'chats.middleware.RequestLoggingMiddleware',  # added
+    'chats.middleware.RestrictAccessByTimeMiddleware',  # added
 ]
 
 # Django REST Framework configuration
