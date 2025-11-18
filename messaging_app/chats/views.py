@@ -7,6 +7,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 
 from .models import Conversation, Message
 from .serializers import ConversationSerializer, MessageSerializer
+from .permissions import IsParticipantOfConversation
 
 # Create your views here.
 
@@ -14,7 +15,7 @@ from .serializers import ConversationSerializer, MessageSerializer
 class ConversationViewSet(viewsets.ModelViewSet):
     queryset = Conversation.objects.all().prefetch_related('participants', 'messages')
     serializer_class = ConversationSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsParticipantOfConversation]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['participants']  # ?participants=<user_id>
     search_fields = ['messages__message_body']
@@ -48,7 +49,7 @@ class ConversationViewSet(viewsets.ModelViewSet):
 class MessageViewSet(viewsets.ModelViewSet):
     queryset = Message.objects.select_related('conversation', 'sender')
     serializer_class = MessageSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsParticipantOfConversation]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['conversation', 'sender']  # ?conversation=<id>&sender=<user_id>
     search_fields = ['message_body']
