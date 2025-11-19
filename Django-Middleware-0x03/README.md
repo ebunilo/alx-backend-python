@@ -10,15 +10,36 @@ Simple REST API for user-to-user conversations and messages.
 - Nested and flat endpoints via routers ([`chats/urls.py`](chats/urls.py)).
 - Validation for participant count and non-empty message bodies in [`ConversationSerializer`](chats/serializers.py).
 - Last message and message count summary fields.
-- Auth: Session + Basic (see [`REST_FRAMEWORK` settings](messaging_app/settings.py)).
+- Auth: Session + Basic + JWT (see [`REST_FRAMEWORK` and `SIMPLE_JWT` settings](messaging_app/settings.py)).
 - Query filtering, search, ordering in viewsets ([`ConversationViewSet`](chats/views.py), [`MessageViewSet`](chats/views.py)).
+- Middleware: request logging, time-window access restriction, per-IP message rate limiting, role-based access restriction (see [`RequestLoggingMiddleware`, `RestrictAccessByTimeMiddleware`, `OffensiveLanguageMiddleware`, `RolepermissionMiddleware`](chats/middleware.py)).
+
+## Middleware
+
+Defined in [chats/middleware.py](chats/middleware.py) and enabled in [messaging_app/settings.py](messaging_app/settings.py):
+
+- [`RequestLoggingMiddleware`](chats/middleware.py): Appends each request (timestamp, user, path) to requests.log.
+- [`RestrictAccessByTimeMiddleware`](chats/middleware.py): Allows requests only between 18:00–21:00 server local time.
+- [`OffensiveLanguageMiddleware`](chats/middleware.py): (Implemented as rate limiter) Max 5 POST message requests per IP per rolling 60s window.
+- [`RolepermissionMiddleware`](chats/middleware.py): Blocks access unless user role is in {'admin','moderator'} (using `User.role` or Django flags/groups).
+
+Order matters (see MIDDLEWARE list in [messaging_app/settings.py](messaging_app/settings.py)); custom middlewares run after core auth so `request.user` is available.
 
 ## Tech Stack
 
 - Django 3.1
 - Django REST Framework
 - django-filter
+- djangorestframework-simplejwt (JWT)
 - SQLite (default; configurable in [`settings.py`](messaging_app/settings.py))
+
+## Security Notes
+
+- Development `SECRET_KEY` in [`settings.py`](messaging_app/settings.py); replace for production.
+- JWT access & refresh tokens provided (see [`TokenObtainPairView`, `TokenRefreshView`](messaging_app/urls.py)).
+- Switch `USERNAME_FIELD` in [`User`](chats/models.py) to `email` if email-based login desired.
+- Review middleware restrictions (time window, role) for production suitability; adjust or remove if not desired.
+- Rate limiting is in-memory; replace with Redis or more robust solution for scaling.
 
 ## Data Models
 
