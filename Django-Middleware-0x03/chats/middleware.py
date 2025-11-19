@@ -59,3 +59,35 @@ class OffensiveLanguageMiddleware:
             timestamps.append(now)
             self.ip_hits[ip] = timestamps
         return self.get_response(request)
+
+class RolepermissionMiddleware:
+    def __init__(self, get_response):
+        self.get_response = get_response
+        self.allowed_roles = {'admin', 'moderator'}
+
+    def __call__(self, request):
+        user = getattr(request, 'user', None)
+        role = None
+        if user and getattr(user, 'is_authenticated', False):
+            # Prefer explicit role attribute if present
+            if hasattr(user, 'role'):
+                role = getattr(user, 'role')
+            else:
+                # Map standard Django flags
+                if getattr(user, 'is_superuser', False):
+                    role = 'admin'
+                elif getattr(user, 'is_staff', False):
+                    role = 'moderator'
+                else:
+                    # Optional: check groups named 'admin' or 'moderator'
+                    try:
+                        groups = {g.name.lower() for g in user.groups.all()}
+                        if 'admin' in groups:
+                            role = 'admin'
+                        elif 'moderator' in groups:
+                            role = 'moderator'
+                    except Exception:
+                        pass
+        if role not in self.allowed_roles:
+            return HttpResponseForbidden("Access denied: admin or moderator role required.")
+        return self.get_response(request)
