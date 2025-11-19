@@ -31,3 +31,31 @@ class RestrictAccessByTimeMiddleware:
         if hour < self.start_hour or hour >= self.end_hour:
             return HttpResponseForbidden("Access restricted outside 6PM–9PM.")
         return self.get_response(request)
+
+class OffensiveLanguageMiddleware:
+    """
+    Rate limits chat message POST requests by client IP.
+    Limit: 5 messages per rolling 60-second window.
+    """
+    def __init__(self, get_response):
+        self.get_response = get_response
+        self.limit = 5
+        self.window_seconds = 60
+        # ip -> list[datetime]
+        self.ip_hits = {}
+
+    def __call__(self, request):
+        if request.method == 'POST':
+            # Extract IP (support proxies)
+            xff = request.META.get('HTTP_X_FORWARDED_FOR')
+            ip = (xff.split(',')[0].strip() if xff else request.META.get('REMOTE_ADDR', 'unknown'))
+            now = timezone.now()
+            timestamps = self.ip_hits.get(ip, [])
+            # Keep only those within window
+            cutoff = now - timezone.timedelta(seconds=self.window_seconds)
+            timestamps = [ts for ts in timestamps if ts > cutoff]
+            if len(timestamps) >= self.limit:
+                return HttpResponseForbidden("Rate limit exceeded: max 5 messages per minute.")
+            timestamps.append(now)
+            self.ip_hits[ip] = timestamps
+        return self.get_response(request)
