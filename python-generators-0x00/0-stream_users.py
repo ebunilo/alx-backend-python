@@ -1,7 +1,7 @@
-import mysql.connector
-from mysql.connector import Error
 from typing import Generator, Dict, Any
 from seed import DatabaseManager  # Import the DatabaseManager from seed.py
+import mysql.connector
+from mysql.connector import Error
 
 def stream_users() -> Generator[Dict[str, Any], None, None]:
     """
