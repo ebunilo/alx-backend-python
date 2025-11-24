@@ -38,3 +38,21 @@ class Notification(models.Model):
 
     def __str__(self):
         return f'Notification {self.id} to {self.user} (read={self.read})'
+
+
+class EditHistory(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    message = models.ForeignKey(Message, related_name='edit_history', on_delete=models.CASCADE)
+    editor = models.ForeignKey(User, related_name='edited_messages', on_delete=models.SET_NULL, null=True, blank=True)
+    previous_content = models.TextField()
+    new_content = models.TextField()
+    edited_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-edited_at']
+        indexes = [
+            models.Index(fields=['message', 'edited_at']),
+        ]
+
+    def __str__(self):
+        return f'Edit {self.id} on Message {self.message_id}'
