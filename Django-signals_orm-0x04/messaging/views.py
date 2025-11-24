@@ -1,6 +1,6 @@
 from django.shortcuts import render
 from rest_framework.viewsets import ModelViewSet
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 from .models import Message
 from .serializers import MessageSerializer, MessageHistorySerializer
@@ -9,6 +9,12 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
 
 # Create your views here.
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def delete_user(request):
+    request.user.delete()
+    return Response(status=status.HTTP_204_NO_CONTENT)
 
 class DeleteUserView(APIView):
     permission_classes = [IsAuthenticated]
