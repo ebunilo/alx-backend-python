@@ -1,16 +1,14 @@
 from rest_framework import serializers
-from .models import Message, EditHistory
+from .models import Message, MessageHistory
 
-class EditHistorySerializer(serializers.ModelSerializer):
-    editor = serializers.StringRelatedField()
-
+class MessageHistorySerializer(serializers.ModelSerializer):
     class Meta:
-        model = EditHistory
-        fields = ['id', 'editor', 'previous_content', 'new_content', 'edited_at']
+        model = MessageHistory
+        fields = ['id', 'previous_content', 'logged_at']
 
 
 class MessageSerializer(serializers.ModelSerializer):
-    history = EditHistorySerializer(source='edit_history', many=True, read_only=True)
+    history = MessageHistorySerializer(many=True, read_only=True)
 
     class Meta:
         model = Message

@@ -1,6 +1,6 @@
 from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
-from .models import Message, Notification, EditHistory
+from .models import Message, Notification, EditHistory, MessageHistory
 
 @receiver(post_save, sender=Message)
 def create_notification_on_message(sender, instance, created, **kwargs):
@@ -23,4 +23,18 @@ def track_message_edit(sender, instance, **kwargs):
             editor=editor,
             previous_content=previous.content,
             new_content=instance.content,
+        )
+
+@receiver(pre_save, sender=Message)
+def log_message_history(sender, instance, **kwargs):
+    if not instance.pk:
+        return
+    try:
+        previous = Message.objects.get(pk=instance.pk)
+    except Message.DoesNotExist:
+        return
+    if previous.content != instance.content:
+        MessageHistory.objects.create(
+            message=previous,
+            previous_content=previous.content,
         )
