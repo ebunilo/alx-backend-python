@@ -1,6 +1,7 @@
-from django.db.models.signals import post_save, pre_save
+from django.db.models.signals import post_save, pre_save, post_delete
 from django.dispatch import receiver
 from django.utils import timezone
+from django.contrib.auth import get_user_model
 from .models import Message, Notification, MessageHistory
 
 @receiver(post_save, sender=Message)
@@ -27,3 +28,12 @@ def log_message_history(sender, instance, **kwargs):
         instance.edited_at = timezone.now()
         if editor and getattr(editor, 'is_authenticated', False):
             instance.edited_by = editor
+
+@receiver(post_delete, sender=get_user_model())
+def cleanup_user_related(sender, instance, **kwargs):
+    # Explicit cleanup (CASCADE already handles most relations)
+    Message.objects.filter(sender=instance).delete()
+    Message.objects.filter(receiver=instance).delete()
+    Notification.objects.filter(user=instance).delete()
+    MessageHistory.objects.filter(message__sender=instance).delete()
+    MessageHistory.objects.filter(message__receiver=instance).delete()
