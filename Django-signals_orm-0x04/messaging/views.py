@@ -13,6 +13,9 @@ from rest_framework import status
 @api_view(['DELETE'])
 @permission_classes([IsAuthenticated])
 def delete_user(request):
+    # Explicitly delete related messages before deleting the user
+    Message.objects.filter(sender=request.user).delete()
+    Message.objects.filter(receiver=request.user).delete()
     request.user.delete()
     return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -31,6 +34,13 @@ class MessageViewSet(ModelViewSet):
         .prefetch_related('history', 'notifications', 'replies')
     )
     serializer_class = MessageSerializer
+
+    def get_queryset(self):
+        user = self.request.user
+        return Message.objects.filter(sender=user) | Message.objects.filter(receiver=user)
+
+    def perform_create(self, serializer):
+        serializer.save(sender=self.request.user)
 
     @action(detail=True, methods=['get'])
     def history(self, request, pk=None):
