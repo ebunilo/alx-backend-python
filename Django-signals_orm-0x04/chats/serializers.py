@@ -36,33 +36,11 @@ class MessageSerializer(serializers.ModelSerializer):
     sender = serializers.PrimaryKeyRelatedField(read_only=True)
     sender_detail = UserSerializer(source='sender', read_only=True)
     conversation = serializers.PrimaryKeyRelatedField(queryset=Conversation.objects.all())
-    parent_message = serializers.PrimaryKeyRelatedField(
-        queryset=Message.objects.all(),
-        required=False,
-        allow_null=True
-    )
-    replies = serializers.SerializerMethodField()
 
     class Meta:
         model = Message
-        fields = [
-            'id', 'sender', 'sender_detail', 'conversation',
-            'message_body', 'sent_at',
-            'parent_message', 'replies'
-        ]
+        fields = ['id', 'sender', 'sender_detail', 'conversation', 'message_body', 'sent_at']
         read_only_fields = ['id', 'sent_at', 'sender']
-
-    def get_replies(self, obj):
-        def build(node):
-            return {
-                'id': str(node.id),
-                'sender': str(node.sender_id),
-                'message_body': node.message_body,
-                'sent_at': node.sent_at,
-                'replies': [build(child) for child in getattr(node, '_prefetched_replies', node.replies.all())]
-            }
-        children = getattr(obj, '_prefetched_replies', obj.replies.all())
-        return [build(child) for child in children]
 
 
 class ConversationSerializer(serializers.ModelSerializer):
