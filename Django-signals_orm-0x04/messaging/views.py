@@ -33,7 +33,11 @@ class MessageViewSet(ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        return Message.unread.unread_for_user(user).only('id', 'sender', 'receiver', 'content', 'timestamp')
+        return (
+            Message.unread.unread_for_user(user)
+            .select_related('sender', 'receiver')
+            .only('id', 'sender', 'receiver', 'content', 'timestamp')
+        )
 
     def perform_create(self, serializer):
         serializer.save(sender=self.request.user)
