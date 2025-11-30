@@ -56,17 +56,27 @@ class MessageViewSet(viewsets.ModelViewSet):
     filterset_class = MessageFilter
 
     def get_queryset(self):
-        # Restrict messages to those in conversations the user participates in
         conversation_id = self.kwargs.get('conversation_pk') or self.kwargs.get('conversation_id') or self.request.query_params.get('conversation_id')
         base_qs = Message.objects.filter(conversation__participants=self.request.user)
         if conversation_id:
             base_qs = base_qs.filter(conversation_id=conversation_id)
-        return base_qs
+        # Optimize: load sender, conversation; prefetch replies (and nested) to avoid N+1
+        return (
+            base_qs
+            .select_related('sender', 'conversation', 'parent_message')
+            .prefetch_related(
+                # immediate replies
+                'replies',
+                # nested replies: prefetch replies of replies (two levels)
+                models.Prefetch('replies__replies'),
+                # and sender on replies
+                models.Prefetch('replies', queryset=Message.objects.select_related('sender'))
+            )
+        )
 
     def list(self, request, *args, **kwargs):
         conversation_id = self.kwargs.get('conversation_pk') or request.query_params.get('conversation_id')
         if conversation_id:
-            # Ensure user is participant before listing messages
             if not Conversation.objects.filter(id=conversation_id, participants=request.user).exists():
                 return Response({"detail": "Forbidden"}, status=status.HTTP_403_FORBIDDEN)
         return super().list(request, *args, **kwargs)
@@ -87,3 +97,25 @@ class MessageViewSet(viewsets.ModelViewSet):
         if not instance.conversation.participants.filter(id=self.request.user.id).exists():
             raise PermissionDenied("Not a participant of this conversation.")
         instance.delete()
+
+    # Threaded tree for a specific root message
+    @action(detail=True, methods=['get'], url_path='thread')
+    def thread(self, request, pk=None):
+        msg = self.get_object()
+        # Ensure optimized prefetch for deep recursion
+        def prefetch_tree(root):
+            # Attach prefetched children to avoid repeated queries in serializer
+            children = list(
+                root.replies.all()
+                .select_related('sender')
+                .prefetch_related(
+                    models.Prefetch('replies', queryset=Message.objects.select_related('sender'))
+                )
+            )
+            root._prefetched_replies = children
+            for c in children:
+                prefetch_tree(c)
+            return root
+
+        prefetch_tree(msg)
+        return Response(MessageSerializer(msg).data)

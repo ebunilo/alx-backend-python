@@ -59,6 +59,14 @@ class Message(models.Model):
     conversation = models.ForeignKey(Conversation, on_delete=models.CASCADE, related_name='messages')
     message_body = models.TextField()
     sent_at = models.DateTimeField(auto_now_add=True)
+    # NEW: allow replies to a specific message
+    parent_message = models.ForeignKey(
+        'self',
+        null=True,
+        blank=True,
+        related_name='replies',
+        on_delete=models.CASCADE
+    )
 
     def __str__(self):
         return f"Msg {self.id} by {self.sender_id}"
@@ -68,4 +76,5 @@ class Message(models.Model):
         indexes = [
             models.Index(fields=['sender']),
             models.Index(fields=['conversation']),
+            models.Index(fields=['parent_message']),
         ]
