@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth import get_user_model
 import uuid
 from django.utils import timezone
+from .managers import UnreadMessagesManager
 
 User = get_user_model()
 
@@ -10,6 +11,7 @@ class Message(models.Model):
     sender = models.ForeignKey(User, related_name='sent_messages', on_delete=models.CASCADE)
     receiver = models.ForeignKey(User, related_name='received_messages', on_delete=models.CASCADE)
     content = models.TextField()
+    read = models.BooleanField(default=False)
     edited = models.BooleanField(default=False)
     edited_at = models.DateTimeField(null=True, blank=True)
     edited_by = models.ForeignKey(
@@ -30,11 +32,16 @@ class Message(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     timestamp = models.DateTimeField(auto_now_add=True, db_index=True)
 
+    # Managers
+    objects = models.Manager()
+    unread = UnreadMessagesManager()
+
     class Meta:
         ordering = ['-timestamp']
         indexes = [
             models.Index(fields=['receiver', 'timestamp']),
             models.Index(fields=['parent_message', 'timestamp']),  # optimize reply lookups
+            models.Index(fields=['receiver', 'read', 'timestamp']),
         ]
 
     def __str__(self):

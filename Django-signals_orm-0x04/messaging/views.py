@@ -28,16 +28,12 @@ class DeleteUserView(APIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 class MessageViewSet(ModelViewSet):
-    queryset = (
-        Message.objects.all()
-        .select_related('sender', 'receiver', 'parent_message')
-        .prefetch_related('history', 'notifications', 'replies')
-    )
+    queryset = Message.objects.all()  # default; overridden by get_queryset
     serializer_class = MessageSerializer
 
     def get_queryset(self):
         user = self.request.user
-        return Message.objects.filter(sender=user) | Message.objects.filter(receiver=user)
+        return Message.unread.unread_for_user(user).only('id', 'sender', 'receiver', 'content', 'timestamp')
 
     def perform_create(self, serializer):
         serializer.save(sender=self.request.user)
