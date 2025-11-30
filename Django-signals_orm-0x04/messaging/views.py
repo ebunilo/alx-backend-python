@@ -7,6 +7,8 @@ from .serializers import MessageSerializer, MessageHistorySerializer
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
+from django.views.decorators.cache import cache_page
+from django.utils.decorators import method_decorator
 
 # Create your views here.
 
@@ -30,6 +32,10 @@ class DeleteUserView(APIView):
 class MessageViewSet(ModelViewSet):
     queryset = Message.objects.all()  # default; overridden by get_queryset
     serializer_class = MessageSerializer
+
+    @method_decorator(cache_page(60), name='list')
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
 
     def get_queryset(self):
         user = self.request.user
