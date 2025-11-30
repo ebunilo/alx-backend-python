@@ -25,7 +25,11 @@ class DeleteUserView(APIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 class MessageViewSet(ModelViewSet):
-    queryset = Message.objects.all()
+    queryset = (
+        Message.objects.all()
+        .select_related('sender', 'receiver', 'parent_message')
+        .prefetch_related('history', 'notifications', 'replies')
+    )
     serializer_class = MessageSerializer
 
     @action(detail=True, methods=['get'])
@@ -33,3 +37,11 @@ class MessageViewSet(ModelViewSet):
         message = self.get_object()
         ser = MessageHistorySerializer(message.history.all(), many=True)
         return Response(ser.data)
+
+    @action(detail=True, methods=['get'])
+    def thread(self, request, pk=None):
+        """
+        Returns the recursive threaded conversation for this message.
+        """
+        message = self.get_object()
+        return Response(message.build_thread())

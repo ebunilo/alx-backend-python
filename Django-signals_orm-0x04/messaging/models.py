@@ -19,6 +19,14 @@ class Message(models.Model):
         related_name='message_edits',
         on_delete=models.SET_NULL
     )
+    # NEW: self-referential parent for replies
+    parent_message = models.ForeignKey(
+        'self',
+        null=True,
+        blank=True,
+        related_name='replies',
+        on_delete=models.CASCADE
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     timestamp = models.DateTimeField(auto_now_add=True, db_index=True)
 
@@ -26,11 +34,42 @@ class Message(models.Model):
         ordering = ['-timestamp']
         indexes = [
             models.Index(fields=['receiver', 'timestamp']),
+            models.Index(fields=['parent_message', 'timestamp']),  # optimize reply lookups
         ]
 
     def __str__(self):
         return f'Msg {self.id} from {self.sender} to {self.receiver}'
 
+    def build_thread(self):
+        """
+        Returns a nested dict of this message and all replies (recursive).
+        Uses prefetch to reduce DB hits.
+        """
+        # Prime replies and related users in one go
+        qs = Message.objects.filter(id=self.id).prefetch_related(
+            models.Prefetch(
+                'replies',
+                queryset=Message.objects.all()
+                    .select_related('sender', 'receiver', 'parent_message')
+                    .prefetch_related('history', 'notifications')
+                    .order_by('timestamp')
+            )
+        ).select_related('sender', 'receiver', 'parent_message')
+        root = qs.first() or self
+
+        def serialize(msg):
+            return {
+                'id': str(msg.id),
+                'sender_id': str(msg.sender_id),
+                'receiver_id': str(msg.receiver_id),
+                'content': msg.content,
+                'timestamp': msg.timestamp,
+                'edited': msg.edited,
+                'parent_message_id': str(msg.parent_message_id) if msg.parent_message_id else None,
+                'replies': [serialize(child) for child in msg.replies.all()]
+            }
+
+        return serialize(root)
 
 class Notification(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
