@@ -3,12 +3,12 @@ pipeline {
     docker { image 'python:3.10' }
   }
 
-  options {
-    timestamps()
-    ansiColor('xterm')
-    buildDiscarder(logRotator(numToKeepStr: '20'))
-    timeout(time: 30, unit: 'MINUTES')
-  }
+  // options {
+  //   timestamps()
+  //   ansiColor('xterm')
+  //   buildDiscarder(logRotator(numToKeepStr: '20'))
+  //   timeout(time: 30, unit: 'MINUTES')
+  // }
 
   parameters {
     string(name: 'GIT_REPO', defaultValue: 'https://github.com/ebunilo/alx-backend-python.git', description: 'GitHub repository URL')
