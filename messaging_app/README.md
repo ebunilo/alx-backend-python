@@ -126,7 +126,7 @@ Placeholder test file [`tests.py`](chats/tests.py). Add API tests using `APITest
 
 ## License
 
-MIT
+**MIT**
 
 ## Maintenance
 
