@@ -99,18 +99,18 @@ pipeline {
     }
   }
 
-  post {
-    always {
-      junit allowEmptyResults: true, testResults: "${REPORT_DIR}/junit.xml"
-      archiveArtifacts artifacts: "${REPORT_DIR}/**", fingerprint: true, allowEmptyArchive: true
-      publishHTML(target: [
-        reportDir: "${REPORT_DIR}",
-        reportFiles: 'report.html',
-        reportName: 'PyTest Report',
-        keepAll: true,
-        allowMissing: true,
-        alwaysLinkToLastBuild: true
-      ])
-    }
-  }
+  // post {
+  //   always {
+  //     junit allowEmptyResults: true, testResults: "${REPORT_DIR}/junit.xml"
+  //     archiveArtifacts artifacts: "${REPORT_DIR}/**", fingerprint: true, allowEmptyArchive: true
+  //     publishHTML(target: [
+  //       reportDir: "${REPORT_DIR}",
+  //       reportFiles: 'report.html',
+  //       reportName: 'PyTest Report',
+  //       keepAll: true,
+  //       allowMissing: true,
+  //       alwaysLinkToLastBuild: true
+  //     ])
+  //   }
+  // }
 }
