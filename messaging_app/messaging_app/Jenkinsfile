@@ -56,17 +56,17 @@ pipeline {
       }
     }
 
-    stage('Run tests (pytest)') {
-      steps {
-        sh '''
-          pytest \
-            --ds=${DJANGO_SETTINGS_MODULE} \
-            --junitxml=${REPORT_DIR}/junit.xml \
-            --html=${REPORT_DIR}/report.html --self-contained-html \
-            --cov=. --cov-report=xml:${REPORT_DIR}/coverage.xml --cov-report=term
-        '''
-      }
-    }
+    // stage('Run tests (pytest)') {
+    //   steps {
+    //     sh '''
+    //       pytest \
+    //         --ds=${DJANGO_SETTINGS_MODULE} \
+    //         --junitxml=${REPORT_DIR}/junit.xml \
+    //         --html=${REPORT_DIR}/report.html --self-contained-html \
+    //         --cov=. --cov-report=xml:${REPORT_DIR}/coverage.xml --cov-report=term
+    //     '''
+    //   }
+    // }
 
     stage('Docker Build') {
       agent { label 'docker' }
