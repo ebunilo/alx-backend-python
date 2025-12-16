@@ -11,9 +11,15 @@ pipeline {
   }
 
   parameters {
-    string(name: 'GIT_REPO', defaultValue: 'https://github.com/ebunilo/messaging_app.git', description: 'GitHub repository URL')
+    string(name: 'GIT_REPO', defaultValue: 'https://github.com/ebunilo/alx-backend-python.git', description: 'GitHub repository URL')
     string(name: 'BRANCH', defaultValue: 'main', description: 'Branch to build')
     string(name: 'GITHUB_CREDENTIALS_ID', defaultValue: 'github-credentials', description: 'Jenkins credentials ID for GitHub access')
+    string(name: 'DOCKER_REPO', defaultValue: 'icalistus/messaging_app', description: 'Docker repository (e.g., user/image)')
+    string(name: 'IMAGE_TAG', defaultValue: '', description: 'Optional image tag. Defaults to BUILD_NUMBER')
+    string(name: 'DOCKERFILE', defaultValue: 'Dockerfile', description: 'Path to Dockerfile relative to repo root')
+    string(name: 'BUILD_CONTEXT', defaultValue: '.', description: 'Docker build context relative to repo root')
+    string(name: 'DOCKER_REGISTRY', defaultValue: '', description: 'Docker registry URL. Leave empty for Docker Hub')
+    string(name: 'DOCKER_CREDENTIALS_ID', defaultValue: 'dockerhub-credentials', description: 'Jenkins credentials ID for Docker registry')
   }
 
   environment {
@@ -27,6 +33,7 @@ pipeline {
     stage('Checkout') {
       steps {
         git branch: params.BRANCH, url: params.GIT_REPO, credentialsId: params.GITHUB_CREDENTIALS_ID
+        stash name: 'scm', includes: '**/*', useDefaultExcludes: false
       }
     }
 
@@ -58,6 +65,36 @@ pipeline {
             --html=${REPORT_DIR}/report.html --self-contained-html \
             --cov=. --cov-report=xml:${REPORT_DIR}/coverage.xml --cov-report=term
         '''
+      }
+    }
+
+    stage('Docker Build') {
+      agent { label 'docker' }
+      steps {
+        unstash 'scm'
+        script {
+          def tag = params.IMAGE_TAG?.trim() ? params.IMAGE_TAG.trim() : env.BUILD_NUMBER
+          sh """
+            docker version
+            docker build -t ${params.DOCKER_REPO}:${tag} -f ${params.DOCKERFILE} ${params.BUILD_CONTEXT}
+            docker tag ${params.DOCKER_REPO}:${tag} ${params.DOCKER_REPO}:latest
+          """
+        }
+      }
+    }
+
+    stage('Docker Push') {
+      agent { label 'docker' }
+      steps {
+        script {
+          def tag = params.IMAGE_TAG?.trim() ? params.IMAGE_TAG.trim() : env.BUILD_NUMBER
+          docker.withRegistry(params.DOCKER_REGISTRY, params.DOCKER_CREDENTIALS_ID) {
+            sh """
+              docker push ${params.DOCKER_REPO}:${tag}
+              docker push ${params.DOCKER_REPO}:latest
+            """
+          }
+        }
       }
     }
   }
